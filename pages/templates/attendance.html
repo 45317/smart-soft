@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}الحضور والانصراف | سمارت تك{% endblock %}
+{% block page_title %}الحضور والانصراف{% endblock %}
+{% block content %}
+<div class="cards-grid three">
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ today_count }}</h3>
+            <span>سجل اليوم</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ today_present }}</h3>
+            <span>حاضرون</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ today_absent }}</h3>
+            <span>غائبون</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>سجل الحضور</h3>
+        <div class="header-actions">
+            <span class="badge">{{ page_obj.paginator.count }}</span>
+            <a href="{% url 'add_attendance' %}" class="btn btn-primary btn-small">+ تسجيل حضور</a>
+        </div>
+    </div>
+    <div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>التاريخ</th>
+                <th>الحالة</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in page_obj %}
+            <tr>
+                <td>{{ a.employee.name }}</td>
+                <td>{{ a.date|date:"d/m/Y" }}</td>
+                <td>{% if a.present %}<span class="badge badge-green">حاضر</span>{% else %}<span class="badge badge-red">غائب</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="empty">لا توجد سجلات حضور</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% include 'includes/pagination.html' %}
+{% endblock %}

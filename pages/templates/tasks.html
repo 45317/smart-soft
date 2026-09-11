@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}المهام | سمارت تك{% endblock %}
+{% block page_title %}المهام{% endblock %}
+{% block content %}
+<div class="cards-grid three">
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ pending_count }}</h3>
+            <span>مهام معلقة</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ done_count }}</h3>
+            <span>مهام منجزة</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ page_obj.paginator.count }}</h3>
+            <span>إجمالي المهام</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>قائمة المهام</h3>
+        <div class="header-actions">
+            <div class="filter-tabs">
+                <a href="?status=pending" class="btn btn-small {% if status == 'pending' %}btn-primary{% else %}btn-ghost{% endif %}">معلقة</a>
+                <a href="?status=done" class="btn btn-small {% if status == 'done' %}btn-primary{% else %}btn-ghost{% endif %}">منجزة</a>
+                <a href="{% url 'tasks' %}" class="btn btn-small {% if not status %}btn-primary{% else %}btn-ghost{% endif %}">الكل</a>
+            </div>
+            <a href="{% url 'add_task' %}" class="btn btn-primary btn-small">+ إضافة</a>
+        </div>
+    </div>
+    <div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>العنوان</th>
+                <th>جهة الاتصال</th>
+                <th>تاريخ الاستحقاق</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in page_obj %}
+            <tr>
+                <td>{{ t.title }}</td>
+                <td><a class="link" href="{% url 'edit_crm' t.contact.pk %}">{{ t.contact.name }}</a></td>
+                <td>{{ t.due_date|date:"d/m/Y"|default:'—' }}</td>
+                <td>{% if t.is_done %}<span class="badge badge-green">منجزة</span>{% else %}<span class="badge">معلقة</span>{% endif %}</td>
+                <td>
+                    <div class="row-actions">
+                        <a href="{% url 'toggle_task' t.pk %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary btn-small">
+                            {% if t.is_done %}إلغاء{% else %}إكمال{% endif %}
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="empty">لا توجد مهام</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% include 'includes/pagination.html' %}
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}تأكيد الحذف | سمارت تك{% endblock %}
+{% block page_title %}تأكيد الحذف{% endblock %}
+{% block content %}
+<div class="card form-card">
+    <p class="confirm-text">هل أنت متأكد من حذف «{{ obj.name }}»؟ لا يمكن التراجع عن هذا الإجراء.</p>
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">حذف</button>
+        <a href="{% url back_url %}" class="btn btn-ghost">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

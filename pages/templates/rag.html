@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}المساعد الذكي | سمارت تك{% endblock %}
+{% block page_title %}المساعد الذكي{% endblock %}
+{% block content %}
+<div class="cards-grid two">
+    <div class="card">
+        <div class="card-header"><h3>أسأل مستنداتك</h3></div>
+        <form id="ragChatForm" method="post" class="model-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="question">السؤال</label>
+                <textarea name="question" id="question" rows="3" placeholder="اكتب سؤالك هنا..." required>{{ question }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="top_k">عدد المصادر</label>
+                <input type="number" name="top_k" id="top_k" value="{{ top_k }}" min="1" max="10">
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="ragAskBtn" class="btn btn-primary">اسأل</button>
+            </div>
+        </form>
+
+        {% if answer or sources or request.POST.question %}
+        <div id="ragAnswer" class="rag-answer">
+            {% if answer %}
+            <div class="card-header"><h4>الإجابة</h4></div>
+            <p>{{ answer }}</p>
+            {% endif %}
+            {% if sources %}
+            <div class="rag-sources">
+                <h5>المصادر</h5>
+                <ul>
+                    {% for s in sources %}
+                    <li>{{ s.filename }} — {{ s.chunk_id }} (التطابق: {{ s.score|floatformat:2 }})</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3>رفع مستند</h3></div>
+        <form id="ragUploadForm" method="post" enctype="multipart/form-data" class="model-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="file">ملف نصي أو PDF</label>
+                <input type="file" name="file" id="file" accept=".txt,.md,.pdf" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="ragUploadBtn" class="btn btn-primary">رفع</button>
+            </div>
+        </form>
+
+        <div class="card-header" style="margin-top:18px"><h3>المستندات</h3></div>
+        {% if documents %}
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>القطع</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documents %}
+                <tr>
+                    <td>{{ d.filename }}</td>
+                    <td>{{ d.chunks }}</td>
+                    <td>
+                        <form method="post" onsubmit="return confirm('حذف هذا المستند؟');">
+                            {% csrf_token %}
+                            <input type="hidden" name="delete_document" value="{{ d.document_id }}">
+                            <button type="submit" class="btn btn-danger btn-small">حذف</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="empty">لا توجد مستندات بعد — ارفع ملفاً للبدء</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    var CHAT_URL = '{% url "rag_chat" %}';
+    var USER_ID = '{{ user_id }}';
+    var answerDiv = document.getElementById('ragAnswer');
+
+    function csrf() {
+        var m = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        return m ? m.value : '';
+    }
+
+    function renderAnswer(data) {
+        var html = '';
+        if (data && data.answer) {
+            html += '<div class="card-header"><h4>' + 'الإجابة' + '</h4></div><p>' + data.answer + '</p>';
+        }
+        var sources = data && data.sources;
+        if (sources && sources.length) {
+            html += '<div class="rag-sources"><h5>' + 'المصادر' + '</h5><ul>';
+            for (var i = 0; i < sources.length; i++) {
+                var s = sources[i];
+                html += '<li>' + s.filename + ' — ' + s.chunk_id + ' (التطابق: ' + (Math.round(s.score * 100) / 100) + ')</li>';
+            }
+            html += '</ul></div>';
+        }
+        if (!html) {
+            html = '<p class="rag-error">' + ((data && data.error) ? data.error : 'لا توجد إجابة') + '</p>';
+        }
+        if (!answerDiv) {
+            answerDiv = document.createElement('div');
+            answerDiv.id = 'ragAnswer';
+            answerDiv.className = 'rag-answer';
+            document.querySelector('#ragChatForm').insertAdjacentElement('afterend', answerDiv);
+        }
+        answerDiv.innerHTML = html;
+        answerDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    var chatForm = document.getElementById('ragChatForm');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            var q = document.getElementById('question').value.trim();
+            var k = document.getElementById('top_k').value || 5;
+            if (!q) { document.getElementById('question').focus(); return; }
+            var btn = document.getElementById('ragAskBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> جارٍ المعالجة...';
+            renderAnswer({ answer: 'جارٍ البحث والإجابة...' });
+            fetch(CHAT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf()
+                },
+                body: JSON.stringify({ user_id: USER_ID, question: q, top_k: parseInt(k, 10) || 5 })
+            })
+                .then(function (r) { return r.json(); })
+                .then(renderAnswer)
+                .catch(function () { renderAnswer({ error: 'تعذر الوصول إلى الخادم' }); })
+                .finally(function () {
+                    btn.disabled = false;
+                    btn.textContent = 'اسأل';
+                    document.getElementById('question').value = q;
+                    document.getElementById('question').focus();
+                });
+        });
+    }
+
+    var uploadForm = document.getElementById('ragUploadForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function () {
+            var btn = document.getElementById('ragUploadBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> جارٍ الرفع...';
+            btn.form.submit();
+        });
+    }
+})();
+</script>
+{% endblock %}

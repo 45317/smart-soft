@@ -1,0 +1,175 @@
+﻿{% extends 'base.html' %}
+{% block title %}لوحة التحكم | سمارت تك{% endblock %}
+{% block page_title %}لوحة التحكم{% endblock %}
+{% block content %}
+<div class="cards-grid">
+    <a href="{% url 'products' %}" class="card stat-card quick-add">
+        <div class="stat-icon">&#9633;</div>
+        <div class="stat-info">
+            <h3>{{ products_count }}</h3>
+            <span>المنتجات</span>
+        </div>
+    </a>
+    <a href="{% url 'crm' %}" class="card stat-card quick-add">
+        <div class="stat-icon">&#9829;</div>
+        <div class="stat-info">
+            <h3>{{ crm_count }}</h3>
+            <span>جهات الاتصال</span>
+        </div>
+    </a>
+    <a href="{% url 'hr' %}" class="card stat-card quick-add">
+        <div class="stat-icon">&#9837;</div>
+        <div class="stat-info">
+            <h3>{{ hr_count }}</h3>
+            <span>الموظفون</span>
+        </div>
+    </a>
+</div>
+
+{% if low_stock_products or overdue_followups or open_tasks_count %}
+<div class="cards-grid alerts-grid">
+    {% if low_stock_products %}
+    <div class="card">
+        <div class="card-header"><h3>مخزون منخفض</h3><a class="link" href="{% url 'products' %}">عرض الكل</a></div>
+        {% for p in low_stock_products %}
+        <div class="alert-row">
+            <span>{{ p.name }}</span>
+            <span class="badge badge-red">الكمية: {{ p.quantity }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if overdue_followups %}
+    <div class="card">
+        <div class="card-header"><h3>متابعات متأخرة</h3><a class="link" href="{% url 'crm' %}">عرض الكل</a></div>
+        {% for c in overdue_followups %}
+        <div class="alert-row">
+            <span>{{ c.name }}</span>
+            <span class="badge badge-red">{{ c.next_follow_up|date:"d/m/Y" }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if open_tasks_count %}
+    <div class="card">
+        <div class="card-header"><h3>مهام معلقة</h3><a class="link" href="{% url 'tasks' %}">عرض الكل</a></div>
+        <div class="alert-row">
+            <span>لديك {{ open_tasks_count }} مهمة قيد التنفيذ</span>
+            <span class="badge">{{ today_present }} حاضر</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="cards-grid charts-grid">
+    <div class="card chart-card">
+        <div class="card-header"><h3>المنتجات حسب الفئة</h3></div>
+        <canvas id="categoryChart" height="120"></canvas>
+    </div>
+    <div class="card chart-card">
+        <div class="card-header"><h3>العملاء حسب الحالة</h3></div>
+        <canvas id="statusChart" height="120"></canvas>
+    </div>
+    <div class="card chart-card">
+        <div class="card-header"><h3>الموظفون حسب الحالة</h3></div>
+        <canvas id="hrStatusChart" height="120"></canvas>
+    </div>
+</div>
+
+<div class="cards-grid two">
+    <div class="card">
+        <div class="card-header">
+            <h3>أحدث المنتجات</h3>
+            <div class="header-actions">
+                <a href="{% url 'add_product' %}" class="btn btn-primary btn-small">+ إضافة</a>
+                <a href="{% url 'products' %}" class="link">عرض الكل</a>
+            </div>
+        </div>
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in recent_products %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td>
+                        {{ p.quantity }}
+                        {% if p.low_stock %}<span class="badge badge-red">منخفض</span>{% endif %}
+                    </td>
+                    <td>{{ p.price }} ج.م</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="empty">لا توجد منتجات بعد</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>أحدث الموظفين</h3>
+            <div class="header-actions">
+                <a href="{% url 'add_hr' %}" class="btn btn-primary btn-small">+ إضافة</a>
+                <a href="{% url 'hr' %}" class="link">عرض الكل</a>
+            </div>
+        </div>
+        <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الوظيفة</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in recent_hr %}
+                <tr>
+                    <td>{{ h.name }}</td>
+                    <td>{{ h.position }}</td>
+                    <td>{% if h.status == 'active' %}<span class="badge badge-green">نشط</span>{% else %}<span class="badge badge-red">غير نشط</span>{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="empty">لا يوجد موظفون بعد</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    function makeChart(id, type, labels, data, color) {
+        var el = document.getElementById(id);
+        if (!el || labels.length === 0) return;
+        new Chart(el.getContext('2d'), {
+            type: type,
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: color }] },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+    makeChart('categoryChart', 'bar', {{ category_labels }}, {{ category_totals }}, '#2563eb');
+    makeChart('statusChart', 'doughnut', {{ crm_status_labels }}, {{ crm_status_totals }}, ['#2563eb', '#f59e0b', '#22c55e', '#ef4444']);
+    makeChart('hrStatusChart', 'doughnut', {{ hr_status_labels }}, {{ hr_status_totals }}, ['#22c55e', '#ef4444']);
+})();
+</script>
+{% endblock %}

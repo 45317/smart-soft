@@ -1,0 +1,163 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}سمارت تك{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar-wrap" id="sidebarWrap">
+            <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-logo">T</span>
+                <span class="brand-name">سمارت تك</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.view_name == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon">&#9660;</span>
+                    <span>لوحة التحكم</span>
+                </a>
+                <a href="{% url 'rag' %}" class="nav-item {% if request.resolver_match.view_name == 'rag' %}active{% endif %}">
+                    <span class="nav-icon">&#63;</span>
+                    <span>المساعد الذكي</span>
+                </a>
+                {% if user.is_superuser or 'admin' in user_group_names or 'hr' in user_group_names %}
+                <a href="{% url 'hr' %}" class="nav-item {% if request.resolver_match.view_name == 'hr' %}active{% endif %}">
+                    <span class="nav-icon">&#9837;</span>
+                    <span>الموارد البشرية</span>
+                </a>
+                <a href="{% url 'attendance' %}" class="nav-item {% if request.resolver_match.view_name == 'attendance' %}active{% endif %}">
+                    <span class="nav-icon">&#10004;</span>
+                    <span>الحضور والانصراف</span>
+                </a>
+                <a href="{% url 'leaves' %}" class="nav-item {% if request.resolver_match.view_name == 'leaves' %}active{% endif %}">
+                    <span class="nav-icon">&#9788;</span>
+                    <span>الإجازات</span>
+                </a>
+                {% endif %}
+                {% if user.is_superuser or 'admin' in user_group_names or 'sales' in user_group_names %}
+                <a href="{% url 'crm' %}" class="nav-item {% if request.resolver_match.view_name == 'crm' %}active{% endif %}">
+                    <span class="nav-icon">&#9829;</span>
+                    <span>إدارة العملاء</span>
+                </a>
+                <a href="{% url 'tasks' %}" class="nav-item {% if request.resolver_match.view_name == 'tasks' %}active{% endif %}">
+                    <span class="nav-icon">&#9999;</span>
+                    <span>المهام</span>
+                </a>
+                <a href="{% url 'products' %}" class="nav-item {% if request.resolver_match.view_name == 'products' %}active{% endif %}">
+                    <span class="nav-icon">&#9633;</span>
+                    <span>المنتجات</span>
+                </a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <form method="post" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-item nav-btn">تسجيل الخروج</button>
+                </form>
+            </div>
+        </aside>
+        </div>
+
+        <main class="main">
+            <header class="topbar">
+                <h1 class="page-title">{% block page_title %}لوحة التحكم{% endblock %}</h1>
+                <div class="user-info">
+                    {% if user.is_authenticated %}
+                        <span class="user-name">{{ user.username }}</span>
+                        <span class="user-avatar">{{ user.username|slice:":1"|upper }}</span>
+                    {% endif %}
+                </div>
+            </header>
+            <div class="content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    <script>
+        (function () {
+            var wrap = document.getElementById('sidebarWrap');
+            if (!wrap) return;
+
+            // Respect reduced motion; the CSS :hover rules animate as a fallback.
+            var reduceMotion = window.matchMedia &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduceMotion || !('animate' in document.documentElement)) return;
+
+            var sidebar = wrap.querySelector('.sidebar');
+            if (!sidebar) return;
+
+            var items = [
+                wrap.querySelector('.sidebar-brand'),
+                wrap.querySelector('.logout-form .nav-btn')
+            ].concat(Array.prototype.slice.call(
+                wrap.querySelectorAll('.sidebar-nav .nav-item')
+            )).filter(Boolean);
+
+            var DURATION = 400;
+            var EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+            function animateOpen() {
+                wrap.classList.add('open');
+
+                sidebar.animate([
+                    { transform: 'translateX(100%)', opacity: 0 },
+                    { transform: 'translateX(0)', opacity: 1 }
+                ], { duration: DURATION, easing: EASE, fill: 'forwards' });
+
+                items.forEach(function (el, i) {
+                    el.animate([
+                        { transform: 'translateX(18px)', opacity: 0 },
+                        { transform: 'translateX(0)', opacity: 1 }
+                    ], {
+                        duration: 320,
+                        delay: 80 + i * 45,
+                        easing: EASE,
+                        fill: 'forwards'
+                    });
+                });
+            }
+
+            function animateClose() {
+                items.forEach(function (el) {
+                    el.animate([
+                        { transform: 'translateX(0)', opacity: 1 },
+                        { transform: 'translateX(18px)', opacity: 0 }
+                    ], { duration: 160, easing: 'ease', fill: 'forwards' });
+                });
+
+                sidebar.animate([
+                    { transform: 'translateX(0)', opacity: 1 },
+                    { transform: 'translateX(100%)', opacity: 0 }
+                ], { duration: DURATION, easing: EASE, fill: 'forwards' });
+
+                wrap.classList.remove('open');
+            }
+
+            var shown = false;
+            wrap.addEventListener('mouseenter', function () {
+                if (shown) return;
+                shown = true;
+                animateOpen();
+            });
+            wrap.addEventListener('mouseleave', function () {
+                shown = false;
+                animateClose();
+            });
+        })();
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

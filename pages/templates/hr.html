@@ -1,0 +1,78 @@
+﻿{% extends 'base.html' %}
+{% block title %}الموارد البشرية | سمارت تك{% endblock %}
+{% block page_title %}إدارة الموارد البشرية{% endblock %}
+{% block content %}
+<div class="cards-grid three">
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ active_count }}</h3>
+            <span>موظف نشط</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ total_salary }} ج.م</h3>
+            <span>إجمالي الرواتب</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ pending_leaves }}</h3>
+            <span>إجازات معلقة</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>الموظفون</h3>
+        <div class="header-actions">
+            <span class="badge">{{ page_obj.paginator.count }}</span>
+            <a href="{% url 'add_hr' %}" class="btn btn-primary btn-small">+ إضافة</a>
+        </div>
+    </div>
+    {% include 'includes/toolbar.html' with export_url='export_hr' %}
+    <div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>الاسم</th>
+                <th>البريد الإلكتروني</th>
+                <th>الهاتف</th>
+                <th>الوظيفة</th>
+                <th>القسم</th>
+                <th>الراتب</th>
+                <th>الحالة</th>
+                <th>تاريخ الانضمام</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in page_obj %}
+            <tr>
+                <td>{{ h.name }}</td>
+                <td>{{ h.email }}</td>
+                <td>{{ h.phone }}</td>
+                <td>{{ h.position }}</td>
+                <td>{{ h.department|default:'—' }}</td>
+                <td>{{ h.salary }} ج.م</td>
+                <td>{% if h.status == 'active' %}<span class="badge badge-green">نشط</span>{% else %}<span class="badge badge-red">غير نشط</span>{% endif %}</td>
+                <td>{{ h.created_at|date:"d/m/Y" }}</td>
+                <td>
+                    <div class="row-actions">
+                        <a href="{% url 'edit_hr' h.pk %}" class="btn btn-ghost btn-small">تعديل</a>
+                        <a href="{% url 'delete_hr' h.pk %}" class="btn btn-danger btn-small">حذف</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="empty">لا يوجد موظفون</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% include 'includes/pagination.html' %}
+{% endblock %}

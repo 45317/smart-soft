@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}الإجازات | سمارت تك{% endblock %}
+{% block page_title %}الإجازات{% endblock %}
+{% block content %}
+<div class="cards-grid two">
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ page_obj.paginator.count }}</h3>
+            <span>إجمالي الطلبات</span>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-info">
+            <h3>{{ pending_leaves }}</h3>
+            <span>طلبات معلقة</span>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>طلبات الإجازات</h3>
+        <div class="header-actions">
+            <a href="{% url 'add_leave' %}" class="btn btn-primary btn-small">+ إضافة</a>
+        </div>
+    </div>
+    <div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>الموظف</th>
+                <th>النوع</th>
+                <th>عدد الأيام</th>
+                <th>الحالة</th>
+                <th>تاريخ الطلب</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in page_obj %}
+            <tr>
+                <td>{{ l.employee.name }}</td>
+                <td>{{ l.get_leave_type_display }}</td>
+                <td>{{ l.days }}</td>
+                <td>{% if l.approved %}<span class="badge badge-green">تمت الموافقة</span>{% else %}<span class="badge">معلقة</span>{% endif %}</td>
+                <td>{{ l.created_at|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="empty">لا توجد طلبات إجازات</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% include 'includes/pagination.html' %}
+{% endblock %}
